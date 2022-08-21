@@ -45,7 +45,7 @@ float unpack(vec4 rgbaDepth) {
     return dot(rgbaDepth, bitShift);
 }
 
-vec2 poissonDisk[NUM_SAMPLES];
+vec2 diskSamples[NUM_SAMPLES];
 
 void poissonDiskSamples( const in vec2 randomSeed ) {
 
@@ -57,7 +57,7 @@ void poissonDiskSamples( const in vec2 randomSeed ) {
   float radiusStep = radius;
 
   for( int i = 0; i < NUM_SAMPLES; i ++ ) {
-    poissonDisk[i] = vec2( cos( angle ), sin( angle ) ) * pow( radius, 0.75 );
+    diskSamples[i] = vec2( cos( angle ), sin( angle ) ) * pow( radius, 0.75 );
     radius += radiusStep;
     angle += ANGLE_STEP;
   }
@@ -70,25 +70,40 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
   float sampleY = rand_1to1( sampleX ) ;
 
   float angle = sampleX * PI2;
-  float radius = sqrt(sampleY);
+  float radius = sqrt(abs(sampleY));
 
   for( int i = 0; i < NUM_SAMPLES; i ++ ) {
-    poissonDisk[i] = vec2( radius * cos(angle) , radius * sin(angle)  );
+    diskSamples[i] = vec2( radius * cos(angle) , radius * sin(angle)  );
 
     sampleX = rand_1to1( sampleY ) ;
     sampleY = rand_1to1( sampleX ) ;
 
     angle = sampleX * PI2;
-    radius = sqrt(sampleY);
+    radius = sqrt(abs(sampleY));
   }
 }
 
-float findBlocker( sampler2D shadowMap,  vec2 uv, float zReceiver ) {
-	return 1.0;
+float findBlocker( sampler2D shadowMap, vec2 uv, float zReceiver ) {
+  return 1.0;
 }
 
 float PCF(sampler2D shadowMap, vec4 coords) {
-  return 1.0;
+  const float filterSize = 0.001;
+
+  float numVis = float(NUM_SAMPLES);
+  float total = numVis;
+
+  uniformDiskSamples(coords.xy);
+
+  for( int i = 0; i < PCF_NUM_SAMPLES; i ++ ) {
+    vec2 sample = diskSamples[i] * filterSize; // scaling does not need squaring
+    vec2 uv = sample + coords.xy;
+    float depth = unpack(texture2D(shadowMap, uv));
+    float z = coords.z;
+    if (z - float(EPS) >= depth) numVis -= 1.0;
+  }
+
+  return numVis/total;
 }
 
 float PCSS(sampler2D shadowMap, vec4 coords){
@@ -103,13 +118,11 @@ float PCSS(sampler2D shadowMap, vec4 coords){
 
 }
 
-
 float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
-  float eps = 0.001;
   vec2 uv = shadowCoord.xy;
   float depth = unpack(texture2D(shadowMap, uv));
   float z = shadowCoord.z;
-  if (z - eps < depth) return 1.0;
+  if (z - float(EPS) < depth) return 1.0;
   return 0.0;
 }
 
@@ -147,8 +160,8 @@ void main(void) {
   float visibility;
   vec3 shadowCoord = getShadowCoord();
 
-  visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
-  // visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
+  // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
+  visibility = PCF(uShadowMap, vec4(shadowCoord, 1.0));
   // visibility = PCSS(uShadowMap, vec4(shadowCoord, 1.0));
 
   vec3 phongColor = blinnPhong();

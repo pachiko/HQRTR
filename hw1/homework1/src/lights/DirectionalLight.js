@@ -30,7 +30,7 @@ class DirectionalLight {
 
         // Projection transform
         // mat4.perspective(projectionMatrix, 1.5708, 1.0, 0.001, 1000.0); // 90deg fovy
-        mat4.ortho(projectionMatrix, -100.0, 100.0, -100.0, 100.0, 0.01, 1000.0);
+        mat4.ortho(projectionMatrix, -80.0, 80.0, -80.0, 80.0, 20, 1000);
 
         // MVP
         mat4.multiply(lightMVP, projectionMatrix, viewMatrix);

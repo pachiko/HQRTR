@@ -1,0 +1,4 @@
+[submodule "hw2/homework2/nori"]
+	path = hw2/homework2/nori
+	url = https://github.com/pachiko/Nori
+	branch = prt

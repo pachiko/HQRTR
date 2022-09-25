@@ -1,7 +1,7 @@
 class DirectionalLight {
 
     constructor(lightIntensity, lightColor, lightPos, focalPoint, lightUp, hasShadowMap, gl) {
-        this.mesh = Mesh.cube(setTransform(0, 0, 0, 0.2, 0.2, 0.2, 0));
+        this.mesh = Mesh.cube(setTransform(0, 0, 0, 0.5, 0.5, 0.5, 0));
         this.mat = new EmissiveMaterial(lightIntensity, lightColor);
         this.lightPos = lightPos;
         this.focalPoint = focalPoint;
@@ -29,8 +29,7 @@ class DirectionalLight {
         mat4.lookAt(viewMatrix, this.lightPos, this.focalPoint, this.lightUp);
 
         // Projection transform
-        // mat4.perspective(projectionMatrix, 1.5708, 1.0, 0.001, 1000.0); // 90deg fovy
-        mat4.ortho(projectionMatrix, -80.0, 80.0, -80.0, 80.0, 20, 1000);
+        mat4.ortho(projectionMatrix, -100.0, 100.0, -100.0, 100.0, 1.0, 1000);
 
         // MVP
         mat4.multiply(lightMVP, projectionMatrix, viewMatrix);

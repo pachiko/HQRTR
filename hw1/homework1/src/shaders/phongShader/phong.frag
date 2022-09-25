@@ -2,6 +2,9 @@
 precision mediump float;
 #endif
 
+// PCSS Implementation paper:
+// https://developer.download.nvidia.com/whitepapers/2008/PCSS_Integration.pdf
+
 // Phong related variables
 uniform sampler2D uSampler;
 uniform vec3 uKd;
@@ -19,18 +22,12 @@ varying highp vec3 vNormal;
 #define BLOCKER_SEARCH_NUM_SAMPLES NUM_SAMPLES
 #define PCF_NUM_SAMPLES NUM_SAMPLES
 #define NUM_RINGS 10
-#define PCF_FILTER_SIZE 0.001
+#define PCF_FILTER_SIZE 0.001 // For hard-coded PCF!
 
-// Custom constants (WTF)
-#define LIGHT_WIDTH 0.06
-#define SM_WIDTH (LIGHT_WIDTH / 2.0)
-#define MAX_PENUMBRA 0.3
-
-// Accurate constants that do not work (NVIDIA)
-// #define LIGHT_WORLD_SIZE 0.2
-// #define LIGHT_FRUSTUM_WIDTH 80
-// #define NEAR_PLANE 20
-// #define LIGHT_SIZE_UV (LIGHT_WORLD_SIZE / LIGHT_FRUSTUM_WIDTH) 
+#define LIGHT_WORLD_SIZE 0.5 // Bigger lights, softer shadows; but not until it filters outside the shadow-map!
+#define LIGHT_FRUSTUM_WIDTH 100.0 // Half-width
+#define NEAR_PLANE 1.0
+#define LIGHT_SIZE_UV (LIGHT_WORLD_SIZE / LIGHT_FRUSTUM_WIDTH)
 
 #define EPS 1e-3
 #define PI 3.141592653589793
@@ -39,7 +36,9 @@ varying highp vec3 vNormal;
 uniform sampler2D uShadowMap;
 varying vec4 vPositionFromLight;
 
-
+/*
+  PRNG
+*/
 highp float rand_1to1(highp float x ) { 
   // -1 -1
   return fract(sin(x)*10000.0);
@@ -59,6 +58,9 @@ float unpack(vec4 rgbaDepth) {
     return res;
 }
 
+/*
+  Disk sampling
+*/
 vec2 diskSamples[NUM_SAMPLES];
 
 void poissonDiskSamples( const in vec2 randomSeed ) {
@@ -96,16 +98,25 @@ void uniformDiskSamples( const in vec2 randomSeed ) {
   }
 }
 
+/*
+  Returns the UV coordinates to lookup shadow map. [-1, +1]
+*/
 vec3 getShadowCoord() {
   vec3 res = vPositionFromLight.xyz/vPositionFromLight.w;
   res = (res + 1.0) / 2.0;
   return res;
 }
 
+/*
+  Depth value using shadow map lookup.
+*/
 float shadowMapLookUp(sampler2D shadowMap, vec2 uv) {
   return unpack(texture2D(shadowMap, uv));
 }
 
+/*
+  Hard Shadows.
+*/
 float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
   float depth = shadowMapLookUp(shadowMap, shadowCoord.xy);
   float z = shadowCoord.z;
@@ -113,14 +124,17 @@ float useShadowMap(sampler2D shadowMap, vec4 shadowCoord){
   return 0.0;
 }
 
-float PCF(sampler2D shadowMap, vec4 coords, float filterSize) {
-  float numVis = float(NUM_SAMPLES);
+/*
+  Percentage-closer filtering (PCF). Also used by PCSS by varying the filter radius.
+*/
+float PCF(sampler2D shadowMap, vec4 coords, float filterRadius) {
+  float numVis = float(PCF_NUM_SAMPLES);
   float total = numVis;
 
   poissonDiskSamples(coords.xy*PI);
 
   for( int i = 0; i < PCF_NUM_SAMPLES; i ++ ) {
-    vec2 sample = diskSamples[i] * filterSize; // scaling does not need squaring
+    vec2 sample = diskSamples[i] * filterRadius; // scaling does not need squaring
     vec2 suv = sample + coords.xy;
     float depth = shadowMapLookUp(shadowMap, suv);
     float z = coords.z;
@@ -130,17 +144,20 @@ float PCF(sampler2D shadowMap, vec4 coords, float filterSize) {
   return numVis/total;
 }
 
-float linearize_depth(float d, float zNear, float zFar) {
-  float z_n = 2.0 * d - 1.0;
-  return 2.0 * zNear * zFar / (zFar + zNear - z_n * (zFar - zNear));
-}
-
+/*
+  Blocker search-radius. Uses law of similar triangles.
+  We use LIGHT_UV because the search-radius is applied on the shadow map (UV space)
+  Draw a triangle from light to shadow-map to receiver, with the base of triangle at light
+  and tip of triangle at receiver.
+*/
 float blockerSearchRadius(float zReceiver) {
-  return float(SM_WIDTH);
-  // return float(LIGHT_SIZE_UV) * (zReceiver - float(NEAR_PLANE)) / zReceiver; // NVIDIA
+  return float(LIGHT_SIZE_UV) * (zReceiver - float(NEAR_PLANE)) / zReceiver;
 }
 
-float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
+/*
+  Calculates the average blocker depth.
+*/
+float averageBlockerDepth(sampler2D shadowMap, vec2 uv, float zReceiver) {
   poissonDiskSamples(uv * uv);
 
   float blockerSearchSize = blockerSearchRadius(zReceiver);
@@ -161,29 +178,48 @@ float findBlocker(sampler2D shadowMap, vec2 uv, float zReceiver) {
   return totalD/float(numOccluded);
 }
 
-float penumbraSize(float zReceiver, float avgBlockerD) {
-  return (zReceiver - avgBlockerD) * float(LIGHT_WIDTH) / avgBlockerD;
+/*
+  Ratio of the penumbra. For the formula/diagram:
+  see https://developer.download.nvidia.com/shaderlibrary/docs/shadow_PCSS.pdf
+  But we won't use w_light here, hence it is just a ratio.
+  Uses law of similar tangents.
+  Draw two triangles pointing at each other:
+  Top triangle -> light to blocker; bottom triangle -> blocker to receiver
+*/
+float penumbraRatio(float zReceiver, float avgBlockerD) {
+  return (zReceiver - avgBlockerD) / avgBlockerD;
 }
 
-float filterSize(float penumbra, float zReceiver) {
-  return min(penumbra, float(MAX_PENUMBRA));
-  // return penumbra * float(LIGHT_SIZE_UV) * float(NEAR_PLANE) / zReceiver; // NVIDIA
+/*
+  Radius for PCF. Note that it is wrong to use penumbraUV as filter size:
+  The filter acts on shadow map whereas penumbra is on the receiver.
+  Uses law of similar triangles. Draw a triangle with tip at light and base at receiver.
+*/
+float filterRadius(float penumbraRatio, float zReceiver) {
+  float penumbraUV = penumbraRatio * float(LIGHT_SIZE_UV);
+  return penumbraUV * float(NEAR_PLANE) / zReceiver;
 }
 
+/*
+  Percentage closer soft-shadows
+*/
 float PCSS(sampler2D shadowMap, vec4 coords){
   // STEP 1: avgblocker depth
-  float z = coords.z;
-  float avgBlockerD = findBlocker(shadowMap, coords.xy, z);
-  if (avgBlockerD > z) return 1.0;
+  float zReceiver = coords.z;
+  float avgBlockerD = averageBlockerDepth(shadowMap, coords.xy, zReceiver);
+  if (avgBlockerD > zReceiver) return 1.0;
 
   // STEP 2: penumbra size
-  float penumbra = penumbraSize(z, avgBlockerD);
-  float filterSize = filterSize(penumbra, z);
+  float penumbraR = penumbraRatio(zReceiver, avgBlockerD);
+  float filterRadius = filterRadius(penumbraR, zReceiver);
 
   // STEP 3: filtering
-  return PCF(shadowMap, coords, filterSize);
+  return PCF(shadowMap, coords, filterRadius);
 }
 
+/*
+  Blinn-Phong shading
+*/
 vec3 blinnPhong() {
   vec3 color = texture2D(uSampler, vTextureCoord).rgb;
   color = pow(color, vec3(2.2));

@@ -48,7 +48,7 @@ class WebGLRenderer {
                 this.gl.uniform3fv(this.meshes[i].shader.program.uniforms.uLightPos, this.lights[l].entity.lightPos);
 
                 let cameraModelMatrix = mat4.create();
-                mat4.fromRotation(cameraModelMatrix, timer, [0, 1, 0]);
+                mat4.fromRotation(cameraModelMatrix, timer*10, [0, 1, 0]);
 
                 // let precomputeL_RGB = getMat3ValueFromRGB(precomputeL[guiParams.envmapId]);
 

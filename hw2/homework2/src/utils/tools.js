@@ -33,8 +33,10 @@ function computeSquareMatrix_3by3(rotationMatrix){ // 计算方阵SA(-1) 3*3
 	let Pn2 = SHEval(n2[0], n2[1], n2[2], 3);
 	let Pn3 = SHEval(n3[0], n3[1], n3[2], 3);
 
-	let A = math.matrixFromRows(Pn1, Pn2, Pn3);
-	let A_1 = math.pinv(A);
+	let A = math.matrix([[Pn1[1], Pn2[1], Pn3[1]],
+		[Pn1[2], Pn2[2], Pn3[2]],
+		[Pn1[3], Pn2[3], Pn3[3]]]);
+	let A_1 = math.inv(A);
 
 	// 3、用 R 旋转 ni - {R(ni)}
 	let Rn1 = math.multiply(R, n1);
@@ -46,7 +48,9 @@ function computeSquareMatrix_3by3(rotationMatrix){ // 计算方阵SA(-1) 3*3
 	let PRn2 = SHEval(Rn2.get([0]), Rn2.get([1]), Rn2.get([2]), 3);
 	let PRn3 = SHEval(Rn3.get([0]), Rn3.get([1]), Rn3.get([2]), 3);
 
-	let S = math.matrixFromRows(PRn1, PRn2, PRn3);
+	let S = math.matrix([[PRn1[1], PRn2[1], PRn3[1]],
+		[PRn1[2], PRn2[2], PRn3[2]],
+		[PRn1[3], PRn2[3], PRn3[3]]]);
 
 	// 5、S*A_inverse
 	return math.multiply(S, A_1);
@@ -67,7 +71,11 @@ function computeSquareMatrix_5by5(rotationMatrix){ // 计算方阵SA(-1) 5*5
 	let Pn4 = SHEval(n4[0], n4[1], n4[2], 3);
 	let Pn5 = SHEval(n5[0], n5[1], n5[2], 3);
 
-	let A = math.matrixFromRows(Pn1, Pn2, Pn3, Pn4, Pn5);
+	let A = math.matrix([[Pn1[4], Pn2[4], Pn3[4], Pn4[4], Pn5[4]],
+		[Pn1[5], Pn2[5], Pn3[5], Pn4[5], Pn5[5]],
+		[Pn1[6], Pn2[6], Pn3[6], Pn4[6], Pn5[6]],
+		[Pn1[7], Pn2[7], Pn3[7], Pn4[7], Pn5[7]],
+		[Pn1[8], Pn2[8], Pn3[8], Pn4[8], Pn5[8]]]);
 	let A_1 = math.pinv(A);
 
 	// 3、用 R 旋转 ni - {R(ni)}
@@ -84,7 +92,11 @@ function computeSquareMatrix_5by5(rotationMatrix){ // 计算方阵SA(-1) 5*5
 	let PRn4 = SHEval(Rn4.get([0]), Rn4.get([1]), Rn4.get([2]), 3);
 	let PRn5 = SHEval(Rn5.get([0]), Rn5.get([1]), Rn5.get([2]), 3);
 
-	let S = math.matrixFromRows(PRn1, PRn2, PRn3, PRn4, PRn5);
+	let S = math.matrix([[PRn1[4], PRn2[4], PRn3[4], PRn4[4], PRn5[4]],
+		[PRn1[5], PRn2[5], PRn3[5], PRn4[5], PRn5[5]],
+		[PRn1[6], PRn2[6], PRn3[6], PRn4[6], PRn5[6]],
+		[PRn1[7], PRn2[7], PRn3[7], PRn4[7], PRn5[7]],
+		[PRn1[8], PRn2[8], PRn3[8], PRn4[8], PRn5[8]]]);
 
 	// 5、S*A_inverse
 	return math.multiply(S, A_1);

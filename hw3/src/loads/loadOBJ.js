@@ -47,7 +47,7 @@ function loadOBJ(renderer, path, name, objMaterial, transform) {
 							let light = renderer.lights[0].entity;
 							switch (objMaterial) {
 								case 'SSRMaterial':
-									material = buildSSRMaterial(colorMap, mat.specular.toArray(), light, "./src/shaders/ssrShader/ssrVertex.glsl", "./src/shaders/ssrShader/ssrFragment.glsl");
+									material = buildSSRMaterial(colorMap, mat.specular.toArray(), light, "./src/shaders/ssrShader/ssr.vert", "./src/shaders/ssrShader/ssr.frag");
 									break;
 							}
 

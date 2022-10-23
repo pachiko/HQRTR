@@ -7,7 +7,7 @@ class GBufferMaterial extends Material {
             'uNt': { type: 'texture', value: normalMap.texture },
 
             'uLightVP': { type: 'matrix4fv', value: lightVP },
-            'uShadowMap': { type: 'texture', value: light.fbo.textures[0] },
+            'uShadowMap': { type: 'texture', value: light.fbo.textures[0] }, // Hence why shadow pass is required
         }, [], vertexShader, fragmentShader, camera.fbo);
     }
 }

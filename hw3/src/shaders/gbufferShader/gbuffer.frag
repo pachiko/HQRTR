@@ -36,15 +36,15 @@ vec3 ApplyTangentNormalMap() {
   vec3 t, b;
   LocalBasis(vNormalWorld, t, b);
   vec3 nt = texture2D(uNt, vTextureCoord).xyz * 2.0 - 1.0;
-  nt = normalize(nt.x * t + nt.y * b + nt.z * vNormalWorld);
+  nt = normalize(nt.x * t + nt.y * b + nt.z * vNormalWorld); // actually a rotation matrix
   return nt;
 }
 
 void main(void) {
   vec3 kd = texture2D(uKd, vTextureCoord).rgb;
-  gl_FragData[0] = vec4(kd, 1.0);
-  gl_FragData[1] = vec4(vec3(vDepth), 1.0);
-  gl_FragData[2] = vec4(ApplyTangentNormalMap(), 1.0);
-  gl_FragData[3] = vec4(vec3(SimpleShadowMap(vPosWorld.xyz, 1e-2)), 1.0);
-  gl_FragData[4] = vec4(vec3(vPosWorld.xyz), 1.0);
+  gl_FragData[0] = vec4(kd, 1.0); // diffuse
+  gl_FragData[1] = vec4(vec3(vDepth), 1.0); // depth from camera
+  gl_FragData[2] = vec4(ApplyTangentNormalMap(), 1.0); // world-space normal
+  gl_FragData[3] = vec4(vec3(SimpleShadowMap(vPosWorld.xyz, 1e-2)), 1.0); // depth from light source
+  gl_FragData[4] = vec4(vec3(vPosWorld.xyz), 1.0); // world-space pos
 }

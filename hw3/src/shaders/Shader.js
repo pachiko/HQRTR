@@ -32,7 +32,8 @@ class Shader {
         gl.linkProgram(prog);
 
         if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-            abort('shader linker error:\n' + gl.getProgramInfoLog(prog));
+            console.error('shader linker error:\n' + gl.getProgramInfoLog(prog));
+            // abort('shader linker error:\n' + gl.getProgramInfoLog(prog));
         }
         return prog;
     };

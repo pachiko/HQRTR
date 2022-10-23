@@ -11,7 +11,7 @@ function loadGLTF(renderer, path, name, materialName) {
 			console.log('model ' + Math.round(percentComplete, 2) + '% downloaded');
 		}
 	}
-	function onError() { }
+	function onError() { console.log("WTF!"); }
 
 	new THREE.GLTFLoader(manager)
 		.setPath(path)
@@ -52,9 +52,9 @@ function loadGLTF(renderer, path, name, materialName) {
 					let light = renderer.lights[0].entity;
 					switch (materialName) {
 						case 'SSRMaterial':
-							material = buildSSRMaterial(diffuseMap, specularMap, light, renderer.camera, "./src/shaders/ssrShader/ssrVertex.glsl", "./src/shaders/ssrShader/ssrFragment.glsl");
-							shadowMaterial = buildShadowMaterial(light, "./src/shaders/shadowShader/shadowVertex.glsl", "./src/shaders/shadowShader/shadowFragment.glsl");
-							bufferMaterial = buildGbufferMaterial(diffuseMap, normalMap, light, renderer.camera, "./src/shaders/gbufferShader/gbufferVertex.glsl", "./src/shaders/gbufferShader/gbufferFragment.glsl");
+							material = buildSSRMaterial(diffuseMap, specularMap, light, renderer.camera, "./src/shaders/ssrShader/ssr.vert", "./src/shaders/ssrShader/ssr.frag");
+							shadowMaterial = buildShadowMaterial(light, "./src/shaders/shadowShader/shadow.vert", "./src/shaders/shadowShader/shadow.frag");
+							bufferMaterial = buildGbufferMaterial(diffuseMap, normalMap, light, renderer.camera, "./src/shaders/gbufferShader/gbuffer.vert", "./src/shaders/gbufferShader/gbuffer.frag");
 							break;
 					}
 

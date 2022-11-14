@@ -50,16 +50,16 @@ function loadOBJ(renderer, path, name, objMaterial, transform, metallic=1.0, rou
 
 							switch (objMaterial) {
 								case 'SkyBoxMaterial':
-									material = buildSkyBoxMaterial("./src/shaders/skyBoxShader/SkyBoxVertex.glsl", "./src/shaders/skyBoxShader/SkyBoxFragment.glsl");
+									material = buildSkyBoxMaterial("./src/shaders/skyBoxShader/SkyBox.vert", "./src/shaders/skyBoxShader/SkyBox.frag");
 									break;
 								case 'EnvMapMaterial':
-									material = buildEnvMapMaterial("./src/shaders/envMapShader/EnvMapVertex.glsl", "./src/shaders/envMapShader/EnvMapFragment.glsl");
+									material = buildEnvMapMaterial("./src/shaders/envMapShader/EnvMap.vert", "./src/shaders/envMapShader/EnvMap.frag");
 									break;
 								case 'KullaContyMaterial':
-									material = buildKullaContyMaterial(colorMap, metallic, roughness, brdflut, eavglut, renderer.lights[0].entity,"./src/shaders/kullaContyShader/KullaContyVertex.glsl", "./src/shaders/kullaContyShader/KullaContyFragment.glsl");
+									material = buildKullaContyMaterial(colorMap, metallic, roughness, brdflut, eavglut, renderer.lights[0].entity,"./src/shaders/kullaContyShader/KullaConty.vert", "./src/shaders/kullaContyShader/KullaConty.frag");
 									break;
 								case 'PBRMaterial':
-									material = buildPBRMaterial(colorMap, metallic, roughness, brdflut, renderer.lights[0].entity,"./src/shaders/pbrShader/PBRVertex.glsl", "./src/shaders/pbrShader/PBRFragment.glsl");
+									material = buildPBRMaterial(colorMap, metallic, roughness, brdflut, renderer.lights[0].entity,"./src/shaders/pbrShader/PBR.vert", "./src/shaders/pbrShader/PBR.frag");
 									break;
 							}
 

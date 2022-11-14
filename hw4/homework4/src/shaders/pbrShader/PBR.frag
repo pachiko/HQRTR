@@ -21,28 +21,32 @@ const float PI = 3.14159265359;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-   // TODO: To calculate GGX NDF here
-    
+   float alpha = roughness * roughness;
+   float numerator = alpha * alpha;
+   float NoH = max(dot(N, H), 0.0);
+   float NoH2 = NoH * NoH;
+   float denominator = NoH2 * (numerator - 1.0) + 1.0;
+   denominator = max(denominator * denominator * PI, 0.001);
+   return numerator/denominator;
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
-    // TODO: To calculate Smith G1 here
-    
-    return 1.0;
+    float k = roughness + 1.0;
+    k = k * k / 8.0;
+    return NdotV/(NdotV*(1.0 - k) + k);
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
-    // TODO: To calculate Smith G here
-
-    return 1.0;
+    return GeometrySchlickGGX(dot(L, N), roughness) *
+     GeometrySchlickGGX(dot(V, N), roughness);
 }
 
 vec3 fresnelSchlick(vec3 F0, vec3 V, vec3 H)
 {
-    // TODO: To calculate Schlick F here
-    return vec3(1.0);
+    float cos_theta = dot(V, H);
+    return F0 + (vec3(1.0) - F0)*pow((1.0 - cos_theta), 5.0);
 }
 
 void main(void) {

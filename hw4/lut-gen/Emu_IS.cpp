@@ -12,7 +12,9 @@
 #include "stb_image_write.h"
 
 const int resolution = 128;
+const bool invert = false;
 
+// Quasi-Monte Carlo sampling
 Vec2f Hammersley(uint32_t i, uint32_t N) { // 0-1
     uint32_t bits = (i << 16u) | (i >> 16u);
     bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
@@ -24,26 +26,34 @@ Vec2f Hammersley(uint32_t i, uint32_t N) { // 0-1
 }
 
 Vec3f ImportanceSampleGGX(Vec2f Xi, Vec3f N, float roughness) {
-    float a = roughness * roughness;
+    float alpha = roughness * roughness;
 
     //TODO: in spherical space - Bonus 1
-
+    float theta_m = atan(alpha * sqrtf(Xi.x) / sqrtf(1 - Xi.x));
+    float phi_h = 2 * PI * Xi.y;
 
     //TODO: from spherical space to cartesian space - Bonus 1
- 
+    Vec3f v = SphericalToVector(theta_m, phi_h);
 
     //TODO: tangent coordinates - Bonus 1
 
 
     //TODO: transform H to tangent space - Bonus 1
     
-    return Vec3f(1.0f);
+    return v;
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
     // TODO: To calculate Schlick G1 here - Bonus 1
     
-    return 1.0f;
+    float a = roughness + 1;
+    float k = a * a / 8.0;
+    //float k = (a * a) / 2.0f; // why not (roughness + 1)^2/8
+
+    float num = NdotV;
+    float denom = NdotV * (1.0f - k) + k;
+
+    return num / denom;
 }
 
 float GeometrySmith(float roughness, float NoV, float NoL) {
@@ -57,6 +67,9 @@ Vec3f IntegrateBRDF(Vec3f V, float roughness) {
 
     const int sample_count = 1024;
     Vec3f N = Vec3f(0.0, 0.0, 1.0);
+
+    float A = 0;
+
     for (int i = 0; i < sample_count; i++) {
         Vec2f Xi = Hammersley(i, sample_count);
         Vec3f H = ImportanceSampleGGX(Xi, N, roughness);
@@ -67,19 +80,23 @@ Vec3f IntegrateBRDF(Vec3f V, float roughness) {
         float VoH = std::max(dot(V, H), 0.0f);
         float NoV = std::max(dot(N, V), 0.0f);
         
-        // TODO: To calculate (fr * ni) / p_o here - Bonus 1
+        float weight = VoH * GeometrySmith(roughness, NoV, NoL) / (NoV * NoH);
 
+        A += weight;
 
         // Split Sum - Bonus 2
         
     }
 
-    return Vec3f(1.0f);
+    return Vec3f(A/sample_count);
 }
 
 int main() {
     uint8_t data[resolution * resolution * 3];
     float step = 1.0 / resolution;
+
+    Vec3f ones(1.f);
+
     for (int i = 0; i < resolution; i++) {
         for (int j = 0; j < resolution; j++) {
             float roughness = step * (static_cast<float>(i) + 0.5f);
@@ -87,6 +104,7 @@ int main() {
             Vec3f V = Vec3f(std::sqrt(1.f - NdotV * NdotV), 0.f, NdotV);
 
             Vec3f irr = IntegrateBRDF(V, roughness);
+            if (invert) irr = ones - irr;
 
             data[(i * resolution + j) * 3 + 0] = uint8_t(irr.x * 255.0);
             data[(i * resolution + j) * 3 + 1] = uint8_t(irr.y * 255.0);
@@ -94,7 +112,8 @@ int main() {
         }
     }
     stbi_flip_vertically_on_write(true);
-    stbi_write_png("GGX_E_LUT.png", resolution, resolution, 3, data, resolution * 3);
+    const char* fName = invert ? "GGX_1mE_LUT.png" : "GGX_E_LUT.png";
+    stbi_write_png(fName, resolution, resolution, 3, data, resolution * 3);
     
     std::cout << "Finished precomputed!" << std::endl;
     return 0;

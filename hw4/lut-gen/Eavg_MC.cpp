@@ -13,7 +13,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#ifndef M_PI
+#define M_PI  3.14159265358979323846
+#endif
+
 int resolution = 128;
+const int res = 128;
 int channel = 3;
 
 typedef struct samplePoints {
@@ -57,6 +62,7 @@ samplePoints squareToCosineHemisphere(int sample_count){
     return samlpeList;
 }
 
+// FIXME: aren't x and y inverted?
 Vec3f getEmu(int x, int y, int alpha, unsigned char *data, float NdotV, float roughness) {
     return Vec3f(data[3 * (resolution * x + y) + 0],
                  data[3 * (resolution * x + y) + 1],
@@ -64,25 +70,7 @@ Vec3f getEmu(int x, int y, int alpha, unsigned char *data, float NdotV, float ro
 }
 
 Vec3f IntegrateEmu(Vec3f V, float roughness, float NdotV, Vec3f Ei) {
-    Vec3f Eavg = Vec3f(0.0f);
-    const int sample_count = 1024;
-    Vec3f N = Vec3f(0.0, 0.0, 1.0);
-
-    samplePoints sampleList = squareToCosineHemisphere(sample_count);
-    for (int i = 0; i < sample_count; i++) {
-        Vec3f L = sampleList.directions[i];
-        Vec3f H = normalize(V + L);
-
-        float NoL = std::max(L.z, 0.0f);
-        float NoH = std::max(H.z, 0.0f);
-        float VoH = std::max(dot(V, H), 0.0f);
-        float NoV = std::max(dot(N, V), 0.0f);
-
-        // TODO: To calculate Eavg here
-        
-    }
-
-    return Eavg / sample_count;
+    return Ei * sqrt(1.0f - NdotV * NdotV) * 2.0f;
 }
 
 
@@ -100,7 +88,7 @@ int main() {
         // | 
         // | rough（i）
         // flip it if you want to write the data on picture 
-        uint8_t data[resolution * resolution * 3];
+        uint8_t data[res * res * 3];
         float step = 1.0 / resolution;
         Vec3f Eavg = Vec3f(0.0);
 		for (int i = 0; i < resolution; i++) 

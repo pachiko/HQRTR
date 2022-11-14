@@ -9,6 +9,10 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
+#ifndef M_PI
+#define M_PI  3.14159265358979323846
+#endif
+
 #include "stb_image_write.h"
 
 const int resolution = 128;
@@ -18,8 +22,9 @@ typedef struct samplePoints {
 	std::vector<float> PDFs;
 }samplePoints;
 
-samplePoints squareToCosineHemisphere(int sample_count){
-    samplePoints samlpeList;
+// FIXME use move?
+samplePoints squareToCosineHemisphere(int sample_count) {
+    samplePoints sampleList;
     const int sample_side = static_cast<int>(floor(sqrt(sample_count)));
 
     std::random_device rd;
@@ -35,43 +40,47 @@ samplePoints squareToCosineHemisphere(int sample_count){
             Vec3f wi = Vec3f(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
             float pdf = wi.z / PI;
             
-            samlpeList.directions.push_back(wi);
-            samlpeList.PDFs.push_back(pdf);
+            sampleList.directions.push_back(wi);
+            sampleList.PDFs.push_back(pdf);
         }
     }
-    return samlpeList;
+    return sampleList;
 }
 
-float DistributionGGX(Vec3f N, Vec3f H, float roughness)
-{
+float DistributionGGX(Vec3f N, Vec3f H, float roughness) {
     float a = roughness*roughness;
     float a2 = a*a;
     float NdotH = std::max(dot(N, H), 0.0f);
     float NdotH2 = NdotH*NdotH;
 
-    float nom   = a2;
+    float num = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 
-    return nom / std::max(denom, 0.0001f);
+    return num / std::max(denom, 0.0001f);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
-    float a = roughness;
-    float k = (a * a) / 2.0f;
+    float a = roughness + 1;
+    float k = a * a / 8.0;
+    //float k = (a * a) / 2.0f; // why not (roughness + 1)^2/8
 
-    float nom = NdotV;
+    float num = NdotV;
     float denom = NdotV * (1.0f - k) + k;
 
-    return nom / denom;
+    return num / denom;
 }
 
-float GeometrySmith(float roughness, float NoV, float NoL) {
-    float ggx2 = GeometrySchlickGGX(NoV, roughness);
-    float ggx1 = GeometrySchlickGGX(NoL, roughness);
+float GeometrySmith(float roughness, float LdotH, float VdotH) {
+    float ggx2 = GeometrySchlickGGX(LdotH, roughness);
+    float ggx1 = GeometrySchlickGGX(VdotH, roughness);
 
     return ggx1 * ggx2;
 }
+
+//float FresnelSchlick() {
+//    return 1.f;
+//}
 
 Vec3f IntegrateBRDF(Vec3f V, float roughness, float NdotV) {
     float A = 0.0;
@@ -82,21 +91,31 @@ Vec3f IntegrateBRDF(Vec3f V, float roughness, float NdotV) {
     
     samplePoints sampleList = squareToCosineHemisphere(sample_count);
     for (int i = 0; i < sample_count; i++) {
-      // TODO: To calculate (fr * ni) / p_o here
-      
-    }
+        float pdf = sampleList.PDFs[i];
+        Vec3f wi = normalize(sampleList.directions[i]);
+        Vec3f h = normalize(wi + V);
+        float NdotWi = dot(N, wi);
 
+        float Dggx = DistributionGGX(N, h, roughness);
+        float Gsmith = GeometrySmith(roughness, dot(N, V), dot(N, wi));
+        
+        float f = Gsmith * Dggx / (4 * NdotV * NdotWi);
+        A += f * NdotWi / pdf;
+    }
+    C = B = A;
+    
     return {A / sample_count, B / sample_count, C / sample_count};
 }
 
 int main() {
     uint8_t data[resolution * resolution * 3];
     float step = 1.0 / resolution;
+
     for (int i = 0; i < resolution; i++) {
         for (int j = 0; j < resolution; j++) {
             float roughness = step * (static_cast<float>(i) + 0.5f);
             float NdotV = step * (static_cast<float>(j) + 0.5f);
-            Vec3f V = Vec3f(std::sqrt(1.f - NdotV * NdotV), 0.f, NdotV);
+            Vec3f V = Vec3f(std::sqrt(1.f - NdotV * NdotV), 0.f, NdotV); // recover view from n.v
 
             Vec3f irr = IntegrateBRDF(V, roughness, NdotV);
 

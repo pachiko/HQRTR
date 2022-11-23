@@ -6,9 +6,9 @@
 #include "util/common.h"
 
 inline float Sqr(const float &v) { return v * v; }
-inline float SafeSqrt(const float &v) { return std::sqrt(std::max(v, 0.f)); }
+inline float SafeSqrt(const float &v) { return std::sqrt(std::fmax(v, 0.f)); }
 inline float SafeAcos(const float &v) {
-    return std::acos(std::min(std::max(v, 0.f), 1.f));
+    return std::acos(std::fmin(std::fmax(v, 0.f), 1.f));
 }
 
 class Float3 {
@@ -53,11 +53,11 @@ class Float3 {
 };
 
 inline Float3 Min(const Float3 &a, const Float3 &b) {
-    return Float3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+    return Float3(std::fmin(a.x, b.x), std::fmin(a.y, b.y), std::fmin(a.z, b.z));
 }
 
 inline Float3 Max(const Float3 &a, const Float3 &b) {
-    return Float3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+    return Float3(std::fmax(a.x, b.x), std::fmax(a.y, b.y), std::fmax(a.z, b.z));
 }
 
 inline float Dot(const Float3 &a, const Float3 &b) {

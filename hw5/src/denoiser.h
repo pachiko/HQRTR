@@ -42,7 +42,7 @@ class Denoiser {
     float m_alpha = 0.2f; // accumulation weight
     float m_colorBoxK = 1.0f;
 
-    // Sigmas for JBF
+    // Sigmas for JBF (needs tuning for different scenes)
     float m_sigmaPlane = 0.1f;
     float m_sigmaColor = 0.6f;
     float m_sigmaNormal = 0.1f;

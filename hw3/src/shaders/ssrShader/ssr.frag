@@ -19,7 +19,7 @@ varying highp vec4 vPosWorld;
 #define INV_PI 0.31830988618
 #define INV_TWO_PI 0.15915494309
 
-#define SAMPLE_NUM 2
+#define SAMPLE_NUM 5
 
 float Rand1(inout float p) {
   p = fract(p * .1031);
@@ -144,7 +144,7 @@ vec3 EvalDirectionalLight(vec2 uv) {
 bool RayMarch(vec3 ori, vec3 dir, out vec3 hitPos) {
   bool res = false;
   const int max_iter = 200;
-  float step_size = 0.04;
+  float step_size = 0.01;
   float eps = 1e-3;
   dir = normalize(dir);
 
